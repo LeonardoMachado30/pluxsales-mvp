@@ -1,0 +1,7 @@
+{
+  "name": "PluxSales MVP",
+  "description": "A high-fidelity prototype of the PluxSales system featuring AI Photo Studio, Voice Assistant, and Search Grounding for Fiscal Compliance.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
