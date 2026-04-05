@@ -1,0 +1,491 @@
+{
+  "info": {
+    "_postman_id": "pluxsales-api-collection",
+    "name": "PluxSales API",
+    "description": "Rotas do backend PluxSales (`routePrefix` /api). Após **Auth > Login**, copie `token` da resposta para a variável de coleção `token` (ou use o script de teste que já preenche). Usuário seed padrão: admin@plux.local / admin123 (se `npm run db:seed` foi executado).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": "substitua-uuid-usuario"
+    },
+    {
+      "key": "ingredientId",
+      "value": "substitua-uuid-ingrediente"
+    },
+    {
+      "key": "productId",
+      "value": "substitua-uuid-produto"
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "item": [
+    {
+      "name": "Sistema",
+      "item": [
+        {
+          "name": "Ping",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/ping",
+            "description": "Health check (texto `ok`)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const j = pm.response.json();",
+                  "  if (j && j.token) { pm.collectionVariables.set('token', j.token); }",
+                  "} catch (e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@plux.local\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Retorna `token` e `user`. O script grava o token na variável `token` da coleção."
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"novo@empresa.com\",\n  \"password\": \"senha123456\",\n  \"nome\": \"Novo Admin\",\n  \"locatarioNome\": \"Minha Loja\",\n  \"uf\": \"SP\",\n  \"cnpj\": null\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register",
+            "description": "Cria Locatário + primeiro usuário ADMIN."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Listar usuários",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users",
+            "description": "JWT obrigatório."
+          }
+        },
+        {
+          "name": "Obter usuário por ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": "Ajuste a variável `userId`."
+          }
+        },
+        {
+          "name": "Criar usuário",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"caixa@empresa.com\",\n  \"password\": \"senha123456\",\n  \"name\": \"Operador Caixa\",\n  \"role\": \"CASHIER\",\n  \"status\": \"PAID\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "Requer papel ADMIN no JWT. Roles: ADMIN, MANAGER, CASHIER."
+          }
+        },
+        {
+          "name": "Atualizar usuário",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nome Atualizado\",\n  \"role\": \"MANAGER\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": "Requer ADMIN. Campos opcionais: email, password, name, role, status."
+          }
+        },
+        {
+          "name": "Excluir usuário",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": "Requer ADMIN."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ingredients",
+      "item": [
+        {
+          "name": "Listar ingredientes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/ingredients",
+            "description": "JWT obrigatório."
+          }
+        },
+        {
+          "name": "Obter ingrediente por ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/ingredients/{{ingredientId}}",
+            "description": "Ajuste `ingredientId`."
+          }
+        },
+        {
+          "name": "Criar ingrediente",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Farinha de trigo\",\n  \"barcode\": \"7890000000001\",\n  \"unit_measure\": \"kg\",\n  \"cost_price\": 5.5,\n  \"unit_cost\": 5.5,\n  \"stock_current\": 10,\n  \"ncm\": \"11010010\",\n  \"tax_classification\": \"TRIBUTADO\",\n  \"ibs_cbs_rate\": 26.5,\n  \"cest\": null\n}"
+            },
+            "url": "{{baseUrl}}/api/ingredients",
+            "description": "Alinhado ao payload do frontend (mockDb / formulário)."
+          }
+        },
+        {
+          "name": "Atualizar ingrediente",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Farinha tipo 1\",\n  \"stock_current\": 8.5\n}"
+            },
+            "url": "{{baseUrl}}/api/ingredients/{{ingredientId}}",
+            "description": "Campos opcionais conforme serviço."
+          }
+        },
+        {
+          "name": "Excluir ingrediente",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/ingredients/{{ingredientId}}",
+            "description": "Falha se ainda houver vínculo em ficha técnica de produto."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Listar produtos",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/products",
+            "description": "JWT obrigatório."
+          }
+        },
+        {
+          "name": "Obter produto por ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/products/{{productId}}",
+            "description": "Ajuste `productId`."
+          }
+        },
+        {
+          "name": "Criar produto",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hambúrguer clássico\",\n  \"category\": \"hamburguer de carne\",\n  \"sale_price\": 32.9,\n  \"active\": true,\n  \"sku\": \"HB-001\",\n  \"ingredients\": [],\n  \"tax_profile\": {\n    \"uf\": \"SP\",\n    \"tax_regime\": \"SIMPLES NACIONAL\",\n    \"fiscal_profile\": \"MODERADO\",\n    \"ncm\": \"21069090\",\n    \"pis_cst\": \"01\",\n    \"cofins_cst\": \"01\",\n    \"icms_cst\": \"00\",\n    \"tax_classification\": \"TRIBUTADO\",\n    \"ibs_cbs_rate\": 26.5,\n    \"beneficio_fiscal\": false,\n    \"price_breakdown\": []\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/products",
+            "description": "Inclua `ingredient_id` / `qty_used` em `ingredients` quando houver ingredientes cadastrados."
+          }
+        },
+        {
+          "name": "Atualizar produto",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hambúrguer especial\",\n  \"sale_price\": 36.9,\n  \"active\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/products/{{productId}}",
+            "description": "Envie `tax_profile` e `ingredients` completos se for alterar ficha fiscal ou receita."
+          }
+        },
+        {
+          "name": "Excluir produto",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/products/{{productId}}",
+            "description": "Falha se existir venda vinculada ao produto."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "Registrar venda",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"product_id\": \"{{productId}}\",\n      \"name\": \"Produto exemplo\",\n      \"qty\": 1,\n      \"price_at_sale\": 32.9,\n      \"cost_at_sale\": 12.0\n    }\n  ],\n  \"total_revenue\": 32.9,\n  \"total_cost\": 12.0,\n  \"payment_method\": \"PIX\",\n  \"sectorId\": null,\n  \"sessionId\": null,\n  \"tableName\": \"Mesa 4\"\n}"
+            },
+            "url": "{{baseUrl}}/api/sales",
+            "description": "`product_id` deve existir no tenant. `payment_method`: ex. DINHEIRO, PIX, CARTÃO DE CRÉDITO."
+          }
+        }
+      ]
+    }
+  ]
+}
