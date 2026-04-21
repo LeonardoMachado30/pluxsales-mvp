@@ -23,12 +23,16 @@ function isProduct(item: BarcodeSelectableItem): item is Product {
   return "sale_price" in item;
 }
 
+function getItemName(item: BarcodeSelectableItem): string {
+  return isProduct(item) ? item.name : item.nome;
+}
+
 /** SKU (produto) ou código de barras (insumo). */
 function getLabelCode(item: BarcodeSelectableItem): string {
   if (isProduct(item)) {
     return (item.sku ?? "").trim();
   }
-  return (item.barcode ?? "").trim();
+  return (item.codigoBarras ?? "").trim();
 }
 
 function formatSalePriceLine(item: BarcodeSelectableItem): string {
@@ -79,7 +83,10 @@ export const BarcodeGeneratorPage: React.FC = () => {
     const category = isProduct(item)
       ? String(item.category)
       : "Insumo";
-    const text = await geminiService.suggestLabelStandards(item.name, category);
+    const text = await geminiService.suggestLabelStandards(
+      getItemName(item),
+      category,
+    );
     setAuraStandard(text);
     setIsConsulting(false);
   };
@@ -94,7 +101,7 @@ export const BarcodeGeneratorPage: React.FC = () => {
       .filter((item) => {
         const code = getLabelCode(item).toLowerCase();
         return (
-          item.name.toLowerCase().includes(q) ||
+          getItemName(item).toLowerCase().includes(q) ||
           (code.length > 0 && code.includes(q))
         );
       })
@@ -185,7 +192,7 @@ export const BarcodeGeneratorPage: React.FC = () => {
                       </div>
                       <div className="text-left">
                         <p className="text-xs font-black text-slate-800 truncate max-w-[150px]">
-                          {item.name}
+                          {getItemName(item)}
                         </p>
                         <p className="text-[10px] text-slate-400 font-mono">
                           {getLabelCode(item) || "Sem Código"}
@@ -292,7 +299,7 @@ export const BarcodeGeneratorPage: React.FC = () => {
                     }`}
                   >
                     <p className="text-[10px] font-black text-slate-900 text-center uppercase leading-tight mb-2">
-                      {item.name}
+                      {getItemName(item)}
                     </p>
                     <div className="w-full h-12 bg-slate-900 rounded-sm mb-2 flex items-center justify-center overflow-hidden">
                       <div className="flex gap-[1px] px-2 h-full items-center bg-white w-full">
@@ -337,7 +344,7 @@ export const BarcodeGeneratorPage: React.FC = () => {
               className="border border-black p-4 flex flex-col items-center break-inside-avoid"
             >
               <p className="text-[10px] font-bold uppercase mb-1">
-                {item.name}
+                {getItemName(item)}
               </p>
               <div className="h-10 w-full bg-black mb-1 flex items-center justify-center bg-white border border-black px-1 overflow-hidden">
                 {Array.from({ length: 30 }).map((_, i) => (

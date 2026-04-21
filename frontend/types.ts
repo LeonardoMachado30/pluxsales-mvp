@@ -1,12 +1,17 @@
 import { z } from "zod";
 
-export enum UnitMeasure {
-  G = "g",
-  ML = "ml",
-  UN = "un",
-  KG = "kg",
+/** Alinhado ao enum Prisma / API (`G` | `ML` | `UN` | `KG` | `L`). */
+export enum UnidadeMedida {
+  G = "G",
+  ML = "ML",
+  UN = "UN",
+  KG = "KG",
   L = "L",
 }
+
+/** @deprecated Use UnidadeMedida */
+export const UnitMeasure = UnidadeMedida;
+export type UnitMeasure = UnidadeMedida;
 
 export enum TaxRegime {
   SIMPLES = "SIMPLES NACIONAL",
@@ -270,27 +275,44 @@ export const ProductWizardSchema = z.preprocess(
   ProductSchema,
 );
 
-export const IngredientSchema = z.object({
-  name: z.string().min(3, "O nome do ingrediente é obrigatório"),
-  barcode: z.string().optional(),
-  unit_measure: z.enum(UnitMeasure),
-  cost_price: z.number().min(0),
-  unit_cost: z.number().min(0),
-  stock_current: z.number().min(0),
-  ncm: z
-    .string()
-    .length(8, "O NCM deve ter 8 dígitos")
-    .regex(/^\d+$/, "Apenas números"),
-  nbs: z.string().optional(),
-  tax_classification: z
-    .enum(TaxClassification)
-    .default(TaxClassification.TRIBUTADO),
-  ibs_cbs_rate: z.number().optional().default(26.5),
-  cest: z.string().optional(),
-  cClassTrib: z.string().optional(),
+/** Campos de `FiscalConfig` no Prisma (nomes idênticos ao schema). */
+export const FiscalConfigSchema = z.object({
+  id: z.string().uuid().optional(),
+  ncm: z.string().max(8).nullable().optional(),
+  origem: z.number().int().default(0),
+  tipoIncidencia: z.number().nullable().optional(),
+  aliquota_ibs: z.number().nullable().optional(),
+  aliquota_cbs: z.number().nullable().optional(),
+  aliquota_is: z.number().nullable().optional(),
+  icms: z.string().max(7).nullable().optional(),
+  icms_cst: z.string().max(7).nullable().optional(),
+  icms_cst_cest: z.string().max(7).nullable().optional(),
+  pis: z.string().max(7).nullable().optional(),
+  pis_cst: z.string().max(7).nullable().optional(),
+  pis_cst_cest: z.string().max(7).nullable().optional(),
+  cofins: z.string().max(7).nullable().optional(),
+  cofins_cst: z.string().max(7).nullable().optional(),
+  cofins_cst_natureza: z.string().max(7).nullable().optional(),
+  ibs_cClassTrib: z.string().max(1).nullable().optional(),
+  ibs_cClassTrib_cst: z.string().max(1).nullable().optional(),
+  cbs_cClassTrib: z.string().max(1).nullable().optional(),
+  cbs_cClassTrib_cst: z.string().max(1).nullable().optional(),
 });
 
-export type IngredientFormValues = z.infer<typeof IngredientSchema>;
+/** Payload de formulário / POST: raiz `Ingrediente` + `fiscalConfig` aninhado. */
+export const IngredientePayloadSchema = z.object({
+  id: z.uuid().nullable().optional(),
+  nome: z.string().min(3, "O nome do ingrediente é obrigatório"),
+  codigoBarras: z.string().nullable().optional(),
+  unidadeMedida: z.enum(UnidadeMedida),
+  precoCustoUltimo: z.number().min(0),
+  custoMedio: z.number().min(0),
+  estoqueAtual: z.number().min(0),
+  fiscalConfig: FiscalConfigSchema,
+});
+
+export type FiscalConfigForm = z.infer<typeof FiscalConfigSchema>;
+export type IngredienteFormValues = z.infer<typeof IngredientePayloadSchema>;
 
 export interface Sector {
   id: string;
@@ -334,21 +356,18 @@ export interface Sale {
   registerSessionId?: string;
 }
 
-export interface Ingredient {
+/**
+ * Ingrediente persistido (GET) — mesmo contrato do Prisma após normalização.
+ * `id` obrigatório na lista; criação pode omitir até a resposta.
+ */
+export type Ingrediente = Omit<z.infer<typeof IngredientePayloadSchema>, "id"> & {
   id: string;
-  name: string;
-  unit_measure: UnitMeasure;
-  cost_price: number;
-  unit_cost: number;
-  stock_current: number;
-  ncm: string;
-  tax_classification: TaxClassification;
-  barcode?: string;
-  nbs?: string;
-  ibs_cbs_rate?: number;
-  cest?: string;
-  cClassTrib?: string;
-}
+  fiscalConfigId?: string;
+  locatarioId?: string;
+};
+
+/** @deprecated Use Ingrediente */
+export type Ingredient = Ingrediente;
 
 export interface StockMovement {
   id: string;

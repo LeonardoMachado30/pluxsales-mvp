@@ -130,7 +130,7 @@ export const WasteManagementPage: React.FC = () => {
                         </div>
                         <div>
                           <span className="text-sm font-black text-slate-800 block">
-                            {ing?.name || "Insumo Excluído"}
+                            {ing?.nome || "Insumo Excluído"}
                           </span>
                           <span className="text-[10px] font-medium text-slate-400 italic">
                             {w.notes}
@@ -147,7 +147,7 @@ export const WasteManagementPage: React.FC = () => {
                       <span className="text-sm font-black font-mono">
                         -{w.qty}{" "}
                         <span className="text-[10px] opacity-40 uppercase">
-                          {ing?.unit_measure}
+                          {ing?.unidadeMedida}
                         </span>
                       </span>
                     </td>
@@ -217,8 +217,8 @@ export const WasteManagementPage: React.FC = () => {
                   <option value="">Escolha o item...</option>
                   {ingredients.map((ing) => (
                     <option key={ing.id} value={ing.id}>
-                      {ing.name} (Saldo: {ing.stock_current}
-                      {ing.unit_measure})
+                      {ing.nome} (Saldo: {ing.estoqueAtual}
+                      {ing.unidadeMedida})
                     </option>
                   ))}
                 </select>

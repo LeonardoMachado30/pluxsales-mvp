@@ -1,5 +1,5 @@
 import {
-  Ingredient,
+  type Ingredient,
   Product,
   Sale,
   SaleItem,
@@ -16,6 +16,7 @@ import {
   WasteEntry,
   WasteReason,
 } from "../../types";
+import { normalizeIngredienteFromApi } from "./pluxMappers";
 
 /** Mesma chave que authService — leitura direta evita ciclo authService → api → mockDb → authService. */
 const AUTH_SESSION_KEY = "plux_auth_session";
@@ -227,7 +228,7 @@ class MockDbService {
     const idx = ingredients.findIndex((i) => i.id === entry.ingredient_id);
     if (idx === -1) return;
     const ing = ingredients[idx];
-    const cost = ing.unit_cost;
+    const cost = ing.custoMedio;
     const newEntry: WasteEntry = {
       ...entry,
       id: crypto.randomUUID(),
@@ -235,7 +236,7 @@ class MockDbService {
       userId: user.id,
       cost_at_moment: cost,
     };
-    ing.stock_current -= entry.qty;
+    ing.estoqueAtual -= entry.qty;
     localStorage.setItem(
       this.getKey(BASE_KEYS.INGREDIENTS),
       JSON.stringify(ingredients),
@@ -255,7 +256,7 @@ class MockDbService {
     this.logActivity(
       "WASTE",
       "INVENTORY",
-      `${ing.name} (-${entry.qty}) Motivo: ${entry.reason}`,
+      `${ing.nome} (-${entry.qty}) Motivo: ${entry.reason}`,
       "WARNING",
     );
   }
@@ -373,9 +374,11 @@ class MockDbService {
     this.logActivity("UPDATE", "SETTINGS", "Parâmetros alterados");
   }
   getIngredients(): Ingredient[] {
-    return JSON.parse(
+    const raw = JSON.parse(
       localStorage.getItem(this.getKey(BASE_KEYS.INGREDIENTS)) || "[]",
-    );
+    ) as Record<string, unknown>[];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((row) => normalizeIngredienteFromApi(row));
   }
 
   saveIngredient(ingredient: Ingredient) {
@@ -390,7 +393,7 @@ class MockDbService {
     this.logActivity(
       index >= 0 ? "UPDATE" : "CREATE",
       "INGREDIENT",
-      `Item: ${ingredient.name}`,
+      `Item: ${ingredient.nome}`,
     );
     this.recalculateAllProductCMV();
   }
@@ -409,9 +412,9 @@ class MockDbService {
     const ingredients = this.getIngredients();
     const index = ingredients.findIndex((i) => i.id === id);
     if (index === -1) return;
-    const oldCost = ingredients[index].unit_cost;
-    ingredients[index].stock_current += qty;
-    if (newCost) ingredients[index].unit_cost = newCost;
+    const oldCost = ingredients[index].custoMedio;
+    ingredients[index].estoqueAtual += qty;
+    if (newCost) ingredients[index].custoMedio = newCost;
     localStorage.setItem(
       this.getKey(BASE_KEYS.INGREDIENTS),
       JSON.stringify(ingredients),
@@ -452,7 +455,7 @@ class MockDbService {
       let cmv = 0;
       p.ingredients.forEach((comp) => {
         const ing = ingredients.find((i) => i.id === comp.ingredient_id);
-        if (ing) cmv += ing.unit_cost * comp.qty_used;
+        if (ing) cmv += ing.custoMedio * comp.qty_used;
       });
       return { ...p, cmv_total: Number(cmv.toFixed(4)) };
     });
@@ -478,7 +481,7 @@ class MockDbService {
     let cmv = 0;
     productData.ingredients.forEach((ci) => {
       const ing = ings.find((i) => i.id === ci.ingredient_id);
-      if (ing) cmv += ing.unit_cost * ci.qty_used;
+      if (ing) cmv += ing.custoMedio * ci.qty_used;
     });
     const newProd = {
       ...productData,
@@ -499,7 +502,7 @@ class MockDbService {
     let cmv = 0;
     productData.ingredients.forEach((ci) => {
       const ing = ings.find((i) => i.id === ci.ingredient_id);
-      if (ing) cmv += ing.unit_cost * ci.qty_used;
+      if (ing) cmv += ing.custoMedio * ci.qty_used;
     });
     const products = this.getProducts();
     const index = products.findIndex((p) => p.id === id);
@@ -570,13 +573,13 @@ class MockDbService {
           (i) => i.id === comp.ingredient_id,
         );
         if (ingIndex >= 0) {
-          ingredients[ingIndex].stock_current -= comp.qty_used * entry.qty;
+          ingredients[ingIndex].estoqueAtual -= comp.qty_used * entry.qty;
           this.addStockLog({
             id: crypto.randomUUID(),
             ingredient_id: ingredients[ingIndex].id,
             type: StockMovementType.OUT,
             qty: comp.qty_used * entry.qty,
-            cost_at_moment: ingredients[ingIndex].unit_cost,
+            cost_at_moment: ingredients[ingIndex].custoMedio,
             timestamp: new Date().toISOString(),
             notes: `Venda: ${product.name}`,
           });
@@ -709,7 +712,7 @@ class MockDbService {
         .sort((a, b) => b[1].qty - a[1].qty)
         .slice(0, 5),
       stockStatus: {
-        low: ingredients.filter((i) => i.stock_current < 100).length,
+        low: ingredients.filter((i) => i.estoqueAtual < 100).length,
         total: ingredients.length,
       },
     };

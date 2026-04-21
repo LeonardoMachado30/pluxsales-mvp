@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { authService } from "../services/authService";
 import { dbService } from "../services/mockDb";
-import { PDVNotification } from "./PDVNotification";
+import { PDVNotification } from "../components/PDVNotification";
 
 const SidebarItem = ({
   to,
@@ -161,7 +161,7 @@ export const Layout: React.FC = () => {
                   Engenharia (Administrador)
                 </p>
               </div>
-              <SidebarItem to="/ingredients" icon={ChefHat} label="Insumos" />
+              <SidebarItem to="/ingredients" icon={ChefHat} label="Ingredientes" />
               <SidebarItem
                 to="/ingredients/history"
                 icon={Database}
@@ -172,7 +172,11 @@ export const Layout: React.FC = () => {
                 icon={Trash2}
                 label="Gestão de Quebras"
               />
-              <SidebarItem to="/products" icon={Menu} label="Cardápio" />
+              <SidebarItem
+                to="/products"
+                icon={Menu}
+                label="Catálogo de Produtos"
+              />
               <SidebarItem to="/labels" icon={Barcode} label="Etiquetas" />
               <div className="px-4 pt-6 pb-2">
                 <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">

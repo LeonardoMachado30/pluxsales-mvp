@@ -194,7 +194,7 @@ export const ProductList: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
         <div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Catálogo de Ofertas
+            Catálogo de Produtos
           </h2>
           <p className="text-slate-500 text-sm font-medium mt-1 italic">
             Gestão centralizada de preços e engenharia de margens.

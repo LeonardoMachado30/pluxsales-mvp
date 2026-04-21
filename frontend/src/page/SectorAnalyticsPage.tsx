@@ -41,41 +41,11 @@ export const SectorAnalyticsPage: React.FC = () => {
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const data = dbService.getAnalyticsSummary();
-      if (isCloudActive) {
-        try {
-          const apiSectors = await api.getSectors();
-          const byId = new Map(apiSectors.map((s) => [s.id, s]));
-          data.sectorStats = data.sectorStats.map((stat: Record<string, unknown> & { id: string }) => {
-            const s = byId.get(stat.id);
-            if (!s) {
-              return {
-                ...stat,
-                tableCount: (stat.tableCount as number) ?? 0,
-              };
-            }
-            return {
-              ...stat,
-              name: s.name,
-              type: s.type,
-              tableCount: s.tableCount,
-            };
-          });
-        } catch {
-          /* mantém rótulos vindos do mock */
-        }
-      }
-      if (cancelled) return;
-      setAnalytics(data);
-      if (data.sectorStats.length > 0) {
-        setSelectedSectorId(data.sectorStats[0].id);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    const data = dbService.getAnalyticsSummary();
+    setAnalytics(data);
+    if (data.sectorStats.length > 0) {
+      setSelectedSectorId(data.sectorStats[0].id);
+    }
   }, []);
 
   const handlePredict = async () => {

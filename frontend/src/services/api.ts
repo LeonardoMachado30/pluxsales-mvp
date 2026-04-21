@@ -9,12 +9,14 @@ import {
 import {
   normalizeProductFromApi,
   normalizeSectorFromApi,
+  normalizeIngredienteFromApi,
   paymentMethodToApi,
   pluxUsuarioToUser,
   productFormToApiBody,
   sectorToApiBody,
   type PluxUsuarioApi,
 } from "./pluxMappers";
+import { IngredientePayloadSchema } from "../../types";
 import type { User } from "./authService";
 
 const API_BASE_URL =
@@ -139,7 +141,9 @@ class ApiService {
     if (!this.isCloudActive) return dbService.getIngredients();
     const res = await fetch(`${API_BASE_URL}/ingredients`, this.authInit());
     if (!res.ok) throw new Error(await readErrorMessage(res));
-    return res.json();
+    const rows = (await res.json()) as Record<string, unknown>[];
+    if (!Array.isArray(rows)) return [];
+    return rows.map((r) => normalizeIngredienteFromApi(r));
   }
 
   /** GET /ingredients/:id — mesmo contrato da lista (Plux JWT). */
@@ -153,20 +157,27 @@ class ApiService {
     );
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(await readErrorMessage(res));
-    return res.json();
+    const row = (await res.json()) as Record<string, unknown>;
+    return normalizeIngredienteFromApi(row);
   }
 
   async saveIngredient(data: Ingredient) {
     if (!this.isCloudActive) return dbService.saveIngredient(data);
-    const { id, ...rest } = data;
-    if (id) {
-      const res = await fetch(`${API_BASE_URL}/ingredients/${id}`, {
+    const { id, fiscalConfigId: _fid, locatarioId: _lid, ...payload } = data;
+    const body = IngredientePayloadSchema.parse({
+      ...payload,
+      id: id || undefined,
+    });
+    const { id: bodyId, ...rest } = body;
+    if (bodyId) {
+      const res = await fetch(`${API_BASE_URL}/ingredients/${bodyId}`, {
         method: "PUT",
         ...this.authInit(),
         body: JSON.stringify(rest),
       });
       if (!res.ok) throw new Error(await readErrorMessage(res));
-      return res.json();
+      const out = (await res.json()) as Record<string, unknown>;
+      return normalizeIngredienteFromApi(out);
     }
     const res = await fetch(`${API_BASE_URL}/ingredients`, {
       method: "POST",
@@ -174,7 +185,8 @@ class ApiService {
       body: JSON.stringify(rest),
     });
     if (!res.ok) throw new Error(await readErrorMessage(res));
-    return res.json();
+    const out = (await res.json()) as Record<string, unknown>;
+    return normalizeIngredienteFromApi(out);
   }
 
   async deleteIngredient(id: string): Promise<void> {

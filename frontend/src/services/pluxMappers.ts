@@ -7,6 +7,10 @@ import {
   FiscalProfile,
   TaxClassification,
   SectorType,
+  UnidadeMedida,
+  IngredientePayloadSchema,
+  type Ingrediente,
+  type FiscalConfigForm,
   type Product,
   type Sector,
 } from "../../types";
@@ -199,5 +203,217 @@ export function sectorToApiBody(
   return {
     name: sector.name.trim(),
     table_count,
+  };
+}
+
+/** Defaults para `fiscalConfig` (FiscalConfig Prisma) no formulário. */
+export function emptyFiscalConfig(): FiscalConfigForm {
+  return {
+    origem: 0,
+    ncm: "00000000",
+    tipoIncidencia: null,
+    aliquota_ibs: null,
+    aliquota_cbs: null,
+    aliquota_is: null,
+    icms: null,
+    icms_cst: null,
+    icms_cst_cest: null,
+    pis: null,
+    pis_cst: null,
+    pis_cst_cest: null,
+    cofins: null,
+    cofins_cst: null,
+    cofins_cst_natureza: null,
+    ibs_cClassTrib: null,
+    ibs_cClassTrib_cst: null,
+    cbs_cClassTrib: null,
+    cbs_cClassTrib_cst: null,
+  };
+}
+
+function digitsNcm8(v: unknown): string {
+  const d = String(v ?? "").replace(/\D/g, "");
+  if (d.length >= 8) return d.slice(0, 8);
+  return d.padStart(8, "0").slice(-8);
+}
+
+function parseUnidadeMedida(v: unknown): UnidadeMedida {
+  const s = String(v ?? "").trim();
+  if ((Object.values(UnidadeMedida) as string[]).includes(s)) {
+    return s as UnidadeMedida;
+  }
+  const legacy: Record<string, UnidadeMedida> = {
+    g: UnidadeMedida.G,
+    ml: UnidadeMedida.ML,
+    un: UnidadeMedida.UN,
+    kg: UnidadeMedida.KG,
+    l: UnidadeMedida.L,
+  };
+  const fromLegacy = legacy[s.toLowerCase()];
+  if (fromLegacy !== undefined) return fromLegacy;
+  return UnidadeMedida.G;
+}
+
+function mergeFiscalFromApi(
+  partial: Record<string, unknown> | null | undefined,
+): FiscalConfigForm {
+  const base = emptyFiscalConfig();
+  if (!partial || typeof partial !== "object") return base;
+  const ncmDigits = digitsNcm8(partial.ncm ?? base.ncm);
+  return {
+    ...base,
+    ...partial,
+    origem:
+      partial.origem !== undefined && partial.origem !== null
+        ? Number(partial.origem)
+        : base.origem,
+    ncm: /^\d{8}$/.test(ncmDigits) ? ncmDigits : base.ncm,
+    tipoIncidencia:
+      partial.tipoIncidencia !== undefined && partial.tipoIncidencia !== null
+        ? Number(partial.tipoIncidencia)
+        : null,
+    aliquota_ibs:
+      partial.aliquota_ibs !== undefined && partial.aliquota_ibs !== null
+        ? Number(partial.aliquota_ibs)
+        : null,
+    aliquota_cbs:
+      partial.aliquota_cbs !== undefined && partial.aliquota_cbs !== null
+        ? Number(partial.aliquota_cbs)
+        : null,
+    aliquota_is:
+      partial.aliquota_is !== undefined && partial.aliquota_is !== null
+        ? Number(partial.aliquota_is)
+        : null,
+  };
+}
+
+/** GET /ingredients e legacy mock → modelo `Ingrediente` (Prisma-alinhado). */
+export function normalizeIngredienteFromApi(
+  raw: Record<string, unknown>,
+): Ingrediente {
+  const id = String(raw.id ?? "");
+  const hasPrismaShape =
+    typeof raw.nome === "string" &&
+    raw.fiscalConfig &&
+    typeof raw.fiscalConfig === "object";
+
+  if (hasPrismaShape) {
+    const fiscalConfig = mergeFiscalFromApi(
+      raw.fiscalConfig as Record<string, unknown>,
+    );
+    const payload = {
+      id: id || undefined,
+      nome: String(raw.nome ?? "").trim(),
+      codigoBarras:
+        raw.codigoBarras === undefined || raw.codigoBarras === null
+          ? null
+          : String(raw.codigoBarras),
+      unidadeMedida: parseUnidadeMedida(raw.unidadeMedida),
+      precoCustoUltimo: Number(raw.precoCustoUltimo ?? 0),
+      custoMedio: Number(raw.custoMedio ?? 0),
+      estoqueAtual: Number(raw.estoqueAtual ?? 0),
+      fiscalConfig,
+    };
+    const parsed = IngredientePayloadSchema.safeParse(payload);
+    const base = parsed.success
+      ? parsed.data
+      : IngredientePayloadSchema.parse({
+          nome: payload.nome || "Sem nome",
+          codigoBarras: payload.codigoBarras,
+          unidadeMedida: payload.unidadeMedida,
+          precoCustoUltimo: Math.max(0, payload.precoCustoUltimo),
+          custoMedio: Math.max(0, payload.custoMedio),
+          estoqueAtual: Math.max(0, payload.estoqueAtual),
+          fiscalConfig,
+        });
+    return {
+      ...base,
+      id: id || crypto.randomUUID(),
+      fiscalConfigId:
+        raw.fiscalConfigId !== undefined && raw.fiscalConfigId !== null
+          ? String(raw.fiscalConfigId)
+          : undefined,
+      locatarioId:
+        raw.locatarioId !== undefined && raw.locatarioId !== null
+          ? String(raw.locatarioId)
+          : undefined,
+    };
+  }
+
+  const nome = String(raw.name ?? raw.nome ?? "").trim() || "Sem nome";
+  const legacyIbs = Number((raw as { ibs_cbs_rate?: unknown }).ibs_cbs_rate);
+  const hasLegacyIbs = Number.isFinite(legacyIbs) && !Number.isNaN(legacyIbs);
+  const fiscalConfig = mergeFiscalFromApi(null);
+  fiscalConfig.ncm = digitsNcm8(
+    (raw as { ncm?: unknown }).ncm ??
+      (raw as { fiscalConfig?: { ncm?: unknown } }).fiscalConfig?.ncm,
+  );
+  if (!/^\d{8}$/.test(fiscalConfig.ncm ?? "")) {
+    fiscalConfig.ncm = "00000000";
+  }
+  fiscalConfig.aliquota_ibs =
+    (raw as { aliquota_ibs?: unknown }).aliquota_ibs != null
+      ? Number((raw as { aliquota_ibs?: unknown }).aliquota_ibs)
+      : hasLegacyIbs
+        ? legacyIbs
+        : null;
+  fiscalConfig.aliquota_cbs =
+    (raw as { aliquota_cbs?: unknown }).aliquota_cbs != null
+      ? Number((raw as { aliquota_cbs?: unknown }).aliquota_cbs)
+      : hasLegacyIbs
+        ? legacyIbs
+        : null;
+  const cestLegacy =
+    (raw as { cest?: unknown }).cest ??
+    (raw as { icms_cst_cest?: unknown }).icms_cst_cest;
+  if (cestLegacy != null && String(cestLegacy).trim() !== "") {
+    fiscalConfig.icms_cst_cest = String(cestLegacy).trim();
+  }
+
+  const payload = {
+    id: id || undefined,
+    nome,
+    codigoBarras:
+      raw.codigoBarras != null
+        ? String(raw.codigoBarras)
+        : raw.barcode != null
+          ? String(raw.barcode)
+          : null,
+    unidadeMedida: parseUnidadeMedida(
+      (raw as { unit_measure?: unknown }).unit_measure ??
+        raw.unidadeMedida,
+    ),
+    precoCustoUltimo: Number(
+      (raw as { cost_price?: unknown }).cost_price ??
+        raw.precoCustoUltimo ??
+        0,
+    ),
+    custoMedio: Number(
+      (raw as { unit_cost?: unknown }).unit_cost ?? raw.custoMedio ?? 0,
+    ),
+    estoqueAtual: Number(
+      (raw as { stock_current?: unknown }).stock_current ??
+        raw.estoqueAtual ??
+        0,
+    ),
+    fiscalConfig,
+  };
+
+  const parsed = IngredientePayloadSchema.safeParse(payload);
+  const base = parsed.success
+    ? parsed.data
+    : IngredientePayloadSchema.parse({
+        nome: payload.nome,
+        codigoBarras: payload.codigoBarras,
+        unidadeMedida: payload.unidadeMedida,
+        precoCustoUltimo: Math.max(0, payload.precoCustoUltimo),
+        custoMedio: Math.max(0, payload.custoMedio),
+        estoqueAtual: Math.max(0, payload.estoqueAtual),
+        fiscalConfig,
+      });
+
+  return {
+    ...base,
+    id: id || crypto.randomUUID(),
   };
 }

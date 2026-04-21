@@ -281,10 +281,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Farinha de trigo\",\n  \"barcode\": \"7890000000001\",\n  \"unit_measure\": \"kg\",\n  \"cost_price\": 5.5,\n  \"unit_cost\": 5.5,\n  \"stock_current\": 10,\n  \"ncm\": \"11010010\",\n  \"tax_classification\": \"TRIBUTADO\",\n  \"ibs_cbs_rate\": 26.5,\n  \"cest\": null\n}"
+              "raw": "{\n  \"nome\": \"Farinha de trigo\",\n  \"codigoBarras\": \"7890000000001\",\n  \"unidadeMedida\": \"kg\",\n  \"precoCustoUltimo\": 5.5,\n  \"custoMedio\": 5.5,\n  \"estoqueAtual\": 10,\n  \"fiscalConfig\": {\n    \"origem\": 0,\n    \"ncm\": \"11010010\",\n    \"tipoIncidencia\": null,\n    \"aliquota_ibs\": null,\n    \"aliquota_cbs\": null,\n    \"aliquota_is\": null,\n    \"icms\": null,\n    \"icms_cst\": null,\n    \"icms_cst_cest\": null,\n    \"pis\": null,\n    \"pis_cst\": null,\n    \"pis_cst_cest\": null,\n    \"cofins\": null,\n    \"cofins_cst\": null,\n    \"cofins_cst_natureza\": null,\n    \"ibs_cClassTrib\": null,\n    \"ibs_cClassTrib_cst\": null,\n    \"cbs_cClassTrib\": null,\n    \"cbs_cClassTrib_cst\": null\n  }\n}"
             },
             "url": "{{baseUrl}}/api/ingredients",
-            "description": "Alinhado ao payload do frontend (mockDb / formulário)."
+            "description": "Contrato Prisma: Ingrediente + fiscalConfig (FiscalConfig). Sem id no POST."
           }
         },
         {
@@ -309,10 +309,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Farinha tipo 1\",\n  \"stock_current\": 8.5\n}"
+              "raw": "{\n  \"nome\": \"Farinha tipo 1\",\n  \"estoqueAtual\": 8.5,\n  \"fiscalConfig\": {\n    \"origem\": 0,\n    \"ncm\": \"11010010\"\n  }\n}"
             },
             "url": "{{baseUrl}}/api/ingredients/{{ingredientId}}",
-            "description": "Campos opcionais conforme serviço."
+            "description": "PUT com mesmo formato do POST (campos opcionais conforme API)."
           }
         },
         {

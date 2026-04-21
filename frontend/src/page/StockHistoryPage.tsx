@@ -28,7 +28,7 @@ export const StockHistoryPage: React.FC = () => {
 
   const filteredLogs = logs.filter((log) => {
     const ing = ingredients.find((i) => i.id === log.ingredient_id);
-    return ing?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return ing?.nome.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   return (
@@ -106,7 +106,7 @@ export const StockHistoryPage: React.FC = () => {
                           <Package className="w-5 h-5" />
                         </div>
                         <span className="text-sm font-black text-slate-800">
-                          {ing?.name || "Insumo Excluído"}
+                          {ing?.nome || "Insumo Excluído"}
                         </span>
                       </div>
                     </td>
@@ -132,7 +132,7 @@ export const StockHistoryPage: React.FC = () => {
                       <span className="text-sm font-black font-mono">
                         {log.qty.toLocaleString()}{" "}
                         <span className="text-[10px] opacity-40">
-                          {ing?.unit_measure}
+                          {ing?.unidadeMedida}
                         </span>
                       </span>
                     </td>
